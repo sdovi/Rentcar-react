@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Сканировать QR-код</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://unpkg.com/html5-qrcode@2.3.10/minified/html5-qrcode.min.js"></script>
+</head>
+<body>
+  <div class="screen">
+    <div class="top-bar">
+      <span class="time">23:03</span>
+      <div class="status-icons">
+        <span class="dot"></span>
+        <span class="network"></span>
+        <span class="wifi"></span>
+        <span class="battery">52%</span>
+      </div>
+    </div>
+
+    <div class="back-arrow">&larr;</div>
+
+    <h1>Сканировать QR-код</h1>
+    <p class="instruction">
+      Чтобы авторизоваться на десктопе,<br/>
+      откройте в браузере страницу авторизации LAVA
+    </p>
+
+    <div id="reader-wrapper">
+      <div class="scanner-frame">
+        <div class="corner-top-right"></div>
+        <div class="corner-bottom-left"></div>
+        <div id="reader"></div>
+      </div>
+    </div>
+
+    <p id="qr-result"></p>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
