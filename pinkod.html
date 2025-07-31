@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Экран ввода ПИН-кода</title>
+    <style>
+        /* Глобальные стили и переменные */
+        :root {
+            --background-color: #ffffff;
+            --text-color: #212121;
+            --button-bg-color: #f0f2f5;
+            --button-active-bg-color: #e0e2e5;
+            --dot-color: #d9d9d9;
+            --dot-active-color: #212121;
+            --exit-color: #ff3b30;
+            --app-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            margin: 0;
+            font-family: var(--app-font);
+            background-color: var(--background-color);
+            color: var(--text-color);
+            /* Располагаем контент по центру и растягиваем на весь экран */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            -webkit-tap-highlight-color: transparent; /* Убирает подсветку при тапе на мобильных */
+        }
+
+        /* Контейнер для всех элементов */
+        .pin-screen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            height: 100%;
+            width: 100%;
+            max-width: 400px; /* Максимальная ширина для больших экранов */
+            padding: 40px 20px;
+            box-sizing: border-box;
+        }
+
+        /* Верхняя часть с заголовком и точками */
+        .pin-header {
+            margin-top: 50px;
+            text-align: center;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        h1 {
+            font-size: 20px;
+            font-weight: 500;
+            margin: 0 0 24px 0;
+        }
+
+        .pin-dots {
+            display: flex;
+            gap: 20px; /* Расстояние между точками */
+            justify-content: center;
+        }
+
+        .dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background-color: var(--dot-color);
+            transition: background-color 0.2s ease-in-out;
+        }
+
+        /* Стиль для заполненной точки */
+        .dot.filled {
+            background-color: var(--dot-active-color);
+        }
+
+        /* Клавиатура */
+        .keypad {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px; /* Расстояние между кнопками */
+            width: 100%;
+            max-width: 280px; /* Уменьшенная ширина для более компактного вида */
+            margin: 2vh 0; /* Уменьшен вертикальный отступ */
+        }
+
+        .key {
+            font-size: 24px; /* УМЕНЬШЕННЫЙ РАЗМЕР ЦИФР */
+            font-weight: 400;
+            color: var(--text-color);
+            background-color: var(--button-bg-color);
+            border: none;
+            border-radius: 50%;
+            aspect-ratio: 1 / 1; /* Делает кнопку идеально круглой */
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: background-color 0.1s ease;
+        }
+
+        /* Расположение кнопки "0" */
+        .key-0 {
+            grid-column: 2; /* Помещаем в центральную колонку */
+        }
+        
+        /* Эффект при нажатии на кнопку */
+        .key:active {
+            background-color: var(--button-active-bg-color);
+        }
+
+        /* Нижняя часть со ссылкой "Выйти" */
+        .pin-footer {
+            height: 60px; /* Резервируем место для ссылки */
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+        }
+
+        .exit-link {
+            color: var(--exit-color);
+            text-decoration: none;
+            font-size: 16px;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="pin-screen">
+        
+        <header class="pin-header">
+            <h1>Придумайте ПИН-код</h1>
+            <div class="pin-dots">
+                <span class="dot"></span>
+                <span class="dot"></span>
+                <span class="dot"></span>
+                <span class="dot"></span>
+            </div>
+        </header>
+
+        <main class="keypad">
+            <button class="key">1</button>
+            <button class="key">2</button>
+            <button class="key">3</button>
+            <button class="key">4</button>
+            <button class="key">5</button>
+            <button class="key">6</button>
+            <button class="key">7</button>
+            <button class="key">8</button>
+            <button class="key">9</button>
+            <button class="key key-0">0</button>
+        </main>
+
+        <footer class="pin-footer">
+            <a href="#" class="exit-link">Выйти</a>
+        </footer>
+
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const keys = document.querySelectorAll('.key');
+            const dots = document.querySelectorAll('.dot');
+            let pin = '';
+
+            const updateDots = () => {
+                dots.forEach((dot, index) => {
+                    if (index < pin.length) {
+                        dot.classList.add('filled');
+                    } else {
+                        dot.classList.remove('filled');
+                    }
+                });
+            };
+
+            keys.forEach(key => {
+                key.addEventListener('click', () => {
+                    if (pin.length < 4) {
+                        pin += key.textContent;
+                        updateDots();
+                    }
+                    
+                    // Если ПИН-код введен полностью
+                    if (pin.length === 4) {
+                        console.log('Введенный ПИН-код:', pin);
+                        // Здесь можно добавить логику отправки ПИН-кода
+                        // или сброс через некоторое время
+                        setTimeout(() => {
+                            pin = '';
+                            updateDots();
+                            // alert("ПИН-код сброшен");
+                        }, 500);
+                    }
+                });
+            });
+
+            // Обработка клика по ссылке "Выйти"
+            const exitLink = document.querySelector('.exit-link');
+            exitLink.addEventListener('click', (event) => {
+                event.preventDefault(); // Предотвращаем переход по ссылке
+                console.log('Нажата кнопка "Выйти"');
+                // Можно добавить другую логику, например, возврат на предыдущую страницу
+                // window.history.back();
+            });
+        });
+    </script>
+
+</body>
+</html>

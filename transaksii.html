@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Транзакции</title>
+    <style>
+        /* Подключение шрифта, похожего на системный шрифт Apple */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+        /* Общие стили */
+        body {
+            margin: 0;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background-color: #f2f3f7; /* Фон, как на скриншоте */
+            color: #111111;
+            display: flex;
+            justify-content: center;
+            padding-top: 20px;
+            min-height: 100vh;
+        }
+
+        /* Контейнер для всего экрана транзакций */
+        .transactions-container {
+            width: 100%;
+            max-width: 375px; /* Типичная ширина мобильного экрана */
+            background-color: #f2f3f7;
+            position: relative; /* Необходимо для позиционирования выпадающих меню */
+        }
+        
+        /* --- Шапка --- */
+        .header {
+            padding: 16px;
+            text-align: center;
+            font-size: 17px;
+            font-weight: 600;
+        }
+        
+        /* --- Панель фильтров --- */
+        .filter-bar {
+            display: flex;
+            padding: 8px 16px;
+            gap: 8px;
+        }
+
+        .filter-button {
+            flex-grow: 1;
+            background-color: #ffffff;
+            border: 1px solid #e5e5ea;
+            border-radius: 10px;
+            padding: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 14px;
+            color: #111111;
+            font-weight: 500;
+            cursor: pointer;
+            gap: 4px;
+            font-family: inherit; /* Наследование шрифта от body */
+        }
+
+        .filter-button svg {
+            stroke: #8a8a8e;
+            transition: transform 0.2s ease-in-out;
+        }
+        
+        .filter-button.open svg {
+            transform: rotate(180deg);
+        }
+        
+        /* --- Выпадающие меню --- */
+        .dropdown-container {
+            position: absolute;
+            top: 115px; /* Положение под панелью фильтров */
+            left: 16px;
+            right: 16px;
+            background-color: #ffffff;
+            border-radius: 14px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+            z-index: 100;
+            display: none; /* Скрыто по умолчанию */
+            overflow: hidden;
+            border: 1px solid #e5e5ea;
+        }
+
+        .dropdown-container.open {
+            display: block; /* Показываем при наличии класса 'open' */
+        }
+
+        .dropdown-item {
+            padding: 14px 16px;
+            font-size: 16px;
+            cursor: pointer;
+            color: #111111;
+        }
+
+        .dropdown-item:hover {
+            background-color: #f2f3f7;
+        }
+
+        .dropdown-item:not(:last-child) {
+            border-bottom: 1px solid #f2f3f7;
+        }
+
+        /* --- Список транзакций --- */
+        .content-area {
+            padding: 0 16px;
+        }
+        
+        .date-header {
+            padding: 16px 0 8px 0;
+            font-size: 15px;
+            font-weight: 500;
+            color: #8a8a8e;
+        }
+
+        .transactions-list {
+            background-color: #ffffff;
+            border-radius: 12px;
+            overflow: hidden; /* Чтобы внутренние разделители не выходили за скругленные углы */
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        }
+
+        .transaction-item {
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .transaction-item:not(:last-child) {
+            border-bottom: 1px solid #f2f3f7;
+        }
+
+        .transaction-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        .transaction-icon.card {
+            background-color: #eaf0ff;
+        }
+        
+        .transaction-icon.card svg {
+            stroke: #1976d2;
+        }
+
+        .transaction-icon.lava {
+            background-color: #111111;
+        }
+
+        .transaction-icon.lava svg {
+            stroke: white;
+        }
+
+        .transaction-details {
+            flex-grow: 1;
+        }
+
+        .transaction-title {
+            font-size: 16px;
+            font-weight: 500;
+        }
+
+        .transaction-subtitle {
+            font-size: 13px;
+            color: #8a8a8e;
+        }
+
+        .transaction-amount {
+            text-align: right;
+        }
+
+        .amount-main {
+            font-size: 16px;
+            font-weight: 500;
+        }
+
+        .amount-commission {
+            font-size: 13px;
+            color: #8a8a8e;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="transactions-container">
+        <div class="header">Транзакции</div>
+        
+        <div class="filter-bar">
+            <button class="filter-button" id="btn-type" onclick="toggleDropdown('type', this)">
+                Тип операции
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            </button>
+            <button class="filter-button" id="btn-status" onclick="toggleDropdown('status', this)">
+                Статус
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            </button>
+            <button class="filter-button" id="btn-period" onclick="toggleDropdown('period', this)">
+                Период
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            </button>
+        </div>
+
+        <div class="dropdown-container" id="type-dropdown">
+            <div class="dropdown-item">Все</div>
+            <div class="dropdown-item">Пополнение</div>
+            <div class="dropdown-item">Перевод</div>
+            <div class="dropdown-item">Оплата</div>
+        </div>
+
+        <div class="dropdown-container" id="status-dropdown">
+            <div class="dropdown-item">Все</div>
+            <div class="dropdown-item">Успешно</div>
+            <div class="dropdown-item">В обработке</div>
+            <div class="dropdown-item">Отклонено</div>
+        </div>
+
+        <div class="dropdown-container" id="period-dropdown">
+            <div class="dropdown-item">За вчера</div>
+            <div class="dropdown-item">Последние 30 дней</div>
+            <div class="dropdown-item">Июнь</div>
+            <div class="dropdown-item">Май</div>
+            <div class="dropdown-item">Свой интервал</div>
+        </div>
+        
+        <div class="content-area">
+            <div class="date-header">17 АПРЕЛЯ, ПН</div>
+
+            <div class="transactions-list">
+                <div class="transaction-item">
+                    <div class="transaction-icon card">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>
+                    </div>
+                    <div class="transaction-details">
+                        <div class="transaction-title">Перевод на карту</div>
+                        <div class="transaction-subtitle">*7974</div>
+                    </div>
+                    <div class="transaction-amount">
+                        <div class="amount-main">- 27 101.55 ₽</div>
+                        <div class="amount-commission">Комиссия 864.55 ₽</div>
+                    </div>
+                </div>
+
+                <div class="transaction-item">
+                    <div class="transaction-icon lava">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 15.5L12 8.5L19.5 15.5"></path></svg>
+                    </div>
+                    <div class="transaction-details">
+                        <div class="transaction-title">Пополнение с LAVA</div>
+                        <div class="transaction-subtitle">Успешно</div>
+                    </div>
+                    <div class="transaction-amount">
+                        <div class="amount-main">+ 569.05 ₽</div>
+                        <div class="amount-commission">Комиссия 0 ₽</div>
+                    </div>
+                </div>
+
+                <div class="transaction-item">
+                    <div class="transaction-icon lava">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 15.5L12 8.5L19.5 15.5"></path></svg>
+                    </div>
+                    <div class="transaction-details">
+                        <div class="transaction-title">Пополнение с LAVA</div>
+                        <div class="transaction-subtitle">Успешно</div>
+                    </div>
+                    <div class="transaction-amount">
+                        <div class="amount-main">+ 701.10 ₽</div>
+                        <div class="amount-commission">Комиссия 0 ₽</div>
+                    </div>
+                </div>
+                <div class="transaction-item">
+                    <div class="transaction-icon lava">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 15.5L12 8.5L19.5 15.5"></path></svg>
+                    </div>
+                    <div class="transaction-details">
+                        <div class="transaction-title">Пополнение с LAVA</div>
+                        <div class="transaction-subtitle">Успешно</div>
+                    </div>
+                    <div class="transaction-amount">
+                        <div class="amount-main">+ 701.10 ₽</div>
+                        <div class="amount-commission">Комиссия 0 ₽</div>
+                    </div>
+                </div>
+                <div class="transaction-item">
+                    <div class="transaction-icon lava">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 15.5L12 8.5L19.5 15.5"></path></svg>
+                    </div>
+                    <div class="transaction-details">
+                        <div class="transaction-title">Пополнение с LAVA</div>
+                        <div class="transaction-subtitle">Успешно</div>
+                    </div>
+                    <div class="transaction-amount">
+                        <div class="amount-main">+ 701.10 ₽</div>
+                        <div class="amount-commission">Комиссия 0 ₽</div>
+                    </div>
+                </div>
+                <div class="transaction-item">
+                    <div class="transaction-icon lava">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 15.5L12 8.5L19.5 15.5"></path></svg>
+                    </div>
+                    <div class="transaction-details">
+                        <div class="transaction-title">Пополнение с LAVA</div>
+                        <div class="transaction-subtitle">Успешно</div>
+                    </div>
+                    <div class="transaction-amount">
+                        <div class="amount-main">+ 701.10 ₽</div>
+                        <div class="amount-commission">Комиссия 0 ₽</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Функция для открытия/закрытия выпадающего меню
+        function toggleDropdown(id, button) {
+            const dropdown = document.getElementById(id + '-dropdown');
+            const isAlreadyOpen = dropdown.classList.contains('open');
+
+            // Сначала закрываем все открытые меню и убираем класс 'open' у всех кнопок
+            closeAllDropdowns();
+
+            // Если текущее меню было закрыто, открываем его и добавляем класс 'open' к его кнопке
+            if (!isAlreadyOpen) {
+                dropdown.classList.add('open');
+                button.classList.add('open');
+            }
+        }
+        
+        // Вспомогательная функция для закрытия всех меню
+        function closeAllDropdowns() {
+            document.querySelectorAll('.dropdown-container.open').forEach(function(openDropdown) {
+                openDropdown.classList.remove('open');
+            });
+            document.querySelectorAll('.filter-button.open').forEach(function(openButton) {
+                openButton.classList.remove('open');
+            });
+        }
+
+        // Закрываем выпадающие меню при клике в любом месте за их пределами
+        window.addEventListener('click', function(event) {
+            // Проверяем, был ли клик сделан не по кнопке фильтра
+            if (!event.target.closest('.filter-button')) {
+                closeAllDropdowns();
+            }
+        });
+    </script>
+
+</body>
+</html>
