@@ -199,70 +199,92 @@
         <div id="output-data"></div>
     </div>
 
-    <script>
-        const video = document.getElementById('qr-video');
-        const canvasElement = document.getElementById('qr-canvas');
-        const canvas = canvasElement.getContext('2d');
-        const outputContainer = document.getElementById('output');
-        const outputData = document.getElementById('output-data');
-        let scanning = true;
+   <script>
+    const video = document.getElementById('qr-video');
+    const canvasElement = document.getElementById('qr-canvas');
+    const canvas = canvasElement.getContext('2d');
+    const outputContainer = document.getElementById('output');
+    const outputData = document.getElementById('output-data');
+    const viewfinder = document.querySelector('.viewfinder'); // Находим рамку
+    let scanning = true;
 
-        // Запрашиваем доступ к камере
-        navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
-            .then(function(stream) {
-                video.srcObject = stream;
-                video.setAttribute("playsinline", true); // Необходимо для iOS
-                video.play();
-                requestAnimationFrame(tick); // Начинаем сканирование
-            })
-            .catch(function(err) {
-                console.error("ERROR: " + err);
-                alert("Не удалось получить доступ к камере. Пожалуйста, разрешите доступ в настройках браузера.");
+    // Запрашиваем доступ к камере
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
+        .then(function(stream) {
+            video.srcObject = stream;
+            video.setAttribute("playsinline", true); // Необходимо для iOS
+            video.play();
+            requestAnimationFrame(tick); // Начинаем сканирование
+        })
+        .catch(function(err) {
+            console.error("ERROR: " + err);
+            alert("Не удалось получить доступ к камере. Пожалуйста, разрешите доступ в настройках браузера.");
+        });
+
+    function tick() {
+        if (!scanning) return;
+
+        if (video.readyState === video.HAVE_ENOUGH_DATA) {
+            // --- НАЧАЛО ИЗМЕНЕНИЙ ---
+
+            // 1. Получаем реальные размеры и положение рамки на экране
+            const viewfinderRect = viewfinder.getBoundingClientRect();
+            
+            // 2. Рассчитываем, какую часть кадра с камеры нужно вырезать.
+            //    Это нужно, т.к. разрешение видео и размер экрана могут не совпадать.
+            const videoWidth = video.videoWidth;
+            const videoHeight = video.videoHeight;
+            const screenWidth = window.innerWidth;
+            const screenHeight = window.innerHeight;
+
+            // Коэффициенты масштабирования
+            const scaleX = videoWidth / screenWidth;
+            const scaleY = videoHeight / screenHeight;
+
+            // Вычисляем координаты для "вырезания" (crop)
+            const sx = viewfinderRect.left * scaleX;
+            const sy = viewfinderRect.top * scaleY;
+            const sWidth = viewfinderRect.width * scaleX;
+            const sHeight = viewfinderRect.height * scaleY;
+            
+            // 3. Устанавливаем размер canvas равным размеру вырезаемой области
+            canvasElement.width = sWidth;
+            canvasElement.height = sHeight;
+
+            // 4. Рисуем на canvas только нужную часть кадра с камеры
+            canvas.drawImage(video, sx, sy, sWidth, sHeight, 0, 0, sWidth, sHeight);
+            
+            // 5. Получаем данные изображения с canvas (теперь там только область из рамки)
+            const imageData = canvas.getImageData(0, 0, sWidth, sHeight);
+            
+            // --- КОНЕЦ ИЗМЕНЕНИЙ ---
+            
+            // Пытаемся распознать QR-код в этой области
+            const code = jsQR(imageData.data, imageData.width, imageData.height, {
+                inversionAttempts: "dontInvert",
             });
 
-        function tick() {
-            if (!scanning) return; // Останавливаем, если код уже найден
-
-            if (video.readyState === video.HAVE_ENOUGH_DATA) {
-                // Устанавливаем размер canvas равным размеру видео
-                canvasElement.height = video.videoHeight;
-                canvasElement.width = video.videoWidth;
-                canvas.drawImage(video, 0, 0, canvasElement.width, canvasElement.height);
+            if (code) {
+                // Если код найден
+                scanning = false; // Останавливаем цикл сканирования
+                video.srcObject.getTracks().forEach(track => track.stop()); // Выключаем камеру
                 
-                // Получаем данные изображения с canvas
-                const imageData = canvas.getImageData(0, 0, canvasElement.width, canvasElement.height);
+                // Показываем результат
+                outputData.innerText = code.data;
+                outputContainer.classList.add('visible');
                 
-                // Пытаемся распознать QR-код
-                const code = jsQR(imageData.data, imageData.width, imageData.height, {
-                    inversionAttempts: "dontInvert",
-                });
-
-                if (code) {
-                    // Если код найден
-                    scanning = false; // Останавливаем цикл сканирования
-                    video.srcObject.getTracks().forEach(track => track.stop()); // Выключаем камеру
-                    
-                    // Показываем результат
-                    outputData.innerText = code.data;
-                    outputContainer.classList.add('visible');
-                    
-                    // Вибрация для обратной связи
-                    if ('vibrate' in navigator) {
-                        navigator.vibrate(200);
-                    }
-                    
-                    // По желанию, можно автоматически перейти по ссылке
-                    // if (code.data.startsWith('http')) {
-                    //     window.location.href = code.data;
-                    // }
-
+                // Вибрация для обратной связи
+                if ('vibrate' in navigator) {
+                    navigator.vibrate(200);
                 }
             }
-            // Продолжаем сканировать следующий кадр
-            if (scanning) {
-                requestAnimationFrame(tick);
-            }
         }
-    </script>
+        
+        // Продолжаем сканировать следующий кадр, если код не найден
+        if (scanning) {
+            requestAnimationFrame(tick);
+        }
+    }
+</script>
 </body>
 </html>
